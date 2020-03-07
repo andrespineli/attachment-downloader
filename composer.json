@@ -1,0 +1,15 @@
+{
+    "name": "andrespineli/attachment-downloader",
+    "authors": [
+        {
+            "name": "Andre Spineli",
+            "email": "andrespineli@gmail.com"
+        }
+    ],
+    "require": {},
+    "autoload": {
+        "psr-4": {
+            "AttachmentDownloader\\": "src/"
+        }
+    }
+}

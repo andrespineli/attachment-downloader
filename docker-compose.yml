@@ -1,0 +1,7 @@
+version: "3.7"
+services:
+  attachment-downloader:
+    build: .
+    container_name: attachment-downloader
+    volumes:
+      - ./:/var/www

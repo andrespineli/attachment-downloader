@@ -1,0 +1,9 @@
+{
+    "emails": [
+        {
+            "email": "user@gmail.com",
+            "password": "password"
+        }
+    ],
+    "extensions": "xml, pdf"
+}
