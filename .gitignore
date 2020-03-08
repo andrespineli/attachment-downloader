@@ -1,3 +1,5 @@
 attachments/
 config.json
 vendor
+sync_.php
+sync.phar.gz

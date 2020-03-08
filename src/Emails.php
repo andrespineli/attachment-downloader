@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace AttachmentDownloader;
 
+require_once "Collection.php";
+require_once "Connection.php";
+
 class Emails extends Collection
 {
     private $decode;

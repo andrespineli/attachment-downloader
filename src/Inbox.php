@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace AttachmentDownloader;
 
+require_once "Connection.php";
+require_once "Emails.php";
+
 class Inbox
 {
     private Connection $connection;

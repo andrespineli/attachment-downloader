@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace AttachmentDownloader;
 
+require_once "Connection.php";
+
 class Gmail
 {
     const HOST = '{imap.gmail.com:993/imap/ssl}INBOX';

@@ -1,9 +1,14 @@
 {
-    "emails": [
+    "accounts": [
         {
-            "email": "user@gmail.com",
-            "password": "password"
+            "email": "user1@gmail.com",
+            "password": "pass1"
+        },
+        {
+            "email": "user2@gmail.com",
+            "password": "pass2"
         }
     ],
-    "extensions": "xml, pdf"
+    "extensions": "xml",
+    "folder": "./attachments"
 }
