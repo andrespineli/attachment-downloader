@@ -6,26 +6,34 @@ namespace AttachmentDownloader;
 
 class Emails extends Collection
 {
+    private $decode;
+
     private Connection $connection;
 
     public function __construct(array $data, Connection $connection)
     {
         parent::__construct($data);
         $this->connection = $connection;
+        $this->decode = [
+            3 => function ($file) {
+                return base64_decode($file);
+            },
+            4 => function ($file) {
+                return quoted_printable_decode($file);
+            }
+        ];
     }
 
     public function downloadAttachments(): void
     {
         $this->createDirectoryIfNotExists($this->connection->email());
-
         $this->newestOrder();
-
         $this->fetchStructure();
     }
 
     private function createDirectoryIfNotExists($name): bool
     {
-        $path = "./attachments/{$name}";
+        $path = "{$_ENV['folder']}/{$name}";
 
         if (!file_exists($path)) {
             return mkdir($path, 0777, true);
@@ -56,49 +64,68 @@ class Emails extends Collection
     {
         foreach ($structure->parts as $partNumber => $part) {
             if ($part->ifdparameters) {
-                $this->setAttachments($part, $email, $partNumber);
+                $this->setAttachments($part->dparameters, $part->encoding, $email, $partNumber);
             }
         }
     }
 
-    private function setAttachments($part, $email, $partNumber)
+    private function setAttachments($parameters, $encoding, $email, $partNumber)
     {
-        $decode = [
-            3 => function ($file) {
-                return base64_decode($file);
-            },
-            4 => function ($file) {
-                return quoted_printable_decode($file);
-            }
-        ];
-
-        foreach ($part->dparameters as $parameter) {
+        foreach ($parameters as $parameter) {
             if ($parameter->attribute === 'FILENAME') {
 
-                $section = (string) ($partNumber + 1);
+                $file = $this->fetchBody($email, $partNumber);
+                $file = $this->decode($file, $encoding);
 
-                $file = imap_fetchbody($this->connection->get(), $email, $section);
-
-                if (!isset($decode[$part->encoding])) {
+                if (!$file) {
                     echo "Skipping... {$this->connection->email()} | {$parameter->value}" . PHP_EOL;
                     continue;
                 }
 
-                $file = $decode[$part->encoding]($file);
-
-                $ext = pathinfo($parameter->value, PATHINFO_EXTENSION);
-
-                $extensions = str_replace(' ', '', $_ENV['extensions']);
-
-                if (!in_array($ext, explode(',', $extensions))) {
+                if (!$this->downloadbleExtension($parameter->value)) {
                     echo "Skipping... {$this->connection->email()} | {$parameter->value}" . PHP_EOL;
                     continue;
                 }
 
-                echo "Downloading... {$this->connection->email()} | {$parameter->value}" . PHP_EOL;
-
-                file_put_contents("./attachments/{$this->connection->email()}/{$parameter->value}", $file);
+                $this->saveFile($parameter->value, $file);
             }
+        }
+    }
+
+    private function fetchBody($email, $partNumber)
+    {
+        $section = (string) ($partNumber + 1);
+        return imap_fetchbody($this->connection->get(), $email, $section);
+    }
+
+    private function decode($file, $encoding)
+    {
+        if (isset($this->decode[$encoding])) {
+            return $this->decode[$encoding]($file);
+        }
+
+        return false;
+    }
+
+    private function downloadbleExtension($name)
+    {
+        $ext = pathinfo($name, PATHINFO_EXTENSION);
+        $extensions = str_replace(' ', '', $_ENV['extensions']);
+
+        if (!in_array($ext, explode(',', $extensions))) {
+            return false;
+        }
+
+        return true;
+    }
+
+    private function saveFile($name, $file)
+    {
+        $path = "{$_ENV['folder']}/{$this->connection->email()}/{$name}";
+
+        if (!file_exists($path)) {
+            echo "Downloading... {$this->connection->email()} | {$name}" . PHP_EOL;
+            file_put_contents($path, $file);
         }
     }
 }

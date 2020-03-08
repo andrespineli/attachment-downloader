@@ -1,49 +1,29 @@
 <?php
 
+declare(strict_types=1);
+
 require "./vendor/autoload.php";
 
-$hostname = '{imap.gmail.com:993/imap/ssl}INBOX';
-$username = 'user@gmail.com';
-$password = '********';
+use AttachmentDownloader\Gmail;
+use AttachmentDownloader\Inbox;
 
-$inbox = imap_open($hostname, $username, $password) or die('Cannot connect to Gmail: ' . imap_last_error());
+$configs = json_decode(file_get_contents('./config.json'), true);
 
-$emails = imap_search($inbox, 'ALL');
 
-rsort($emails);
-
-$attachments = [];
-
-foreach ($emails as $email) {
-    $structure = imap_fetchstructure($inbox, $email);
-
-    if (!isset($structure->parts)) {
-        continue;
+foreach ($configs as $key => $value) {
+    if ($key !== 'accounts') {
+        $_ENV[$key] = $value;
     }
+}
 
-    foreach ($structure->parts as $partNumber => $part) {
-        if ($part->ifdparameters) {
-            foreach ($part->dparameters as $parameter) {
-                if ($parameter->attribute === 'FILENAME') {
+while (true) {
+    foreach ($configs['accounts'] as $account) {
+        $connection = Gmail::connect($account['email'], $account['password']);
 
-                    $attachment = [
-                        'file_name' => $parameter->value,
-                        'email_number' => $email
-                    ];
+        $inbox = new Inbox($connection);
 
-                    $attachment['file'] = imap_fetchbody($inbox, $email, $partNumber + 1);
+        $emails = $inbox->search();
 
-                    if ($part->encoding === 3) {
-                        $attachment['file'] = base64_decode($attachment['file']);
-                    }
-
-                    if ($part->encoding === 4) {
-                        $attachment['file'] = quoted_printable_decode($attachment['file']);
-                    }
-
-                    file_put_contents("./attachments/{$attachment['file_name']}", $attachment['file']);
-                }
-            }
-        }
+        $attachments = $emails->downloadAttachments();
     }
 }
